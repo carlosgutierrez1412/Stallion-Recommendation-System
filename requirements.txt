@@ -1,9 +1,5 @@
 streamlit
 pandas
-scikit-learn
-xgboost
-shap
 llama-cpp-python
 openai==0.28
-pickle
 ```
