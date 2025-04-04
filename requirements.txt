@@ -2,4 +2,3 @@ streamlit
 pandas
 llama-cpp-python
 openai==0.28
-```
