@@ -20,15 +20,34 @@ def recommend_stallions(df, mare_name):
         return mare.iloc[0] if not mare.empty else None
 
     def calculate_pedigree_match(m1, m2):
-        fields = [
-            "Sire (Father)", "Dam (Mother)", "Paternal Grandsire", "Paternal Granddam",
-            "Maternal Grandsire", "Maternal Granddam", "Great Grandsire (Sire's Sire)",
-            "Great Granddam (Sire's Dam)", "Great Grandsire (Dam's Sire)",
-            "Great Granddam (Dam's Sire's Dam)", "Great Grandsire (Dam's Dam's Sire)",
-            "Great Granddam (Dam's Dam's Dam)"
+        pedigree = 0.0
+
+        # Level 1: Parents
+        if m1["Sire (Father)"] == m2["Sire (Father)"]:
+            pedigree += 50
+        if m1["Dam (Mother)"] == m2["Dam (Mother)"]:
+            pedigree += 50
+
+        # Level 2: Grandparents (each match is worth 12.5%)
+        grandsire_dam_side = [
+            "Paternal Grandsire", "Paternal Granddam", 
+            "Maternal Grandsire", "Maternal Granddam"
         ]
-        shared = sum(m1.get(f) == m2.get(f) for f in fields if pd.notna(m1.get(f)) and pd.notna(m2.get(f)))
-        return round(100 * shared / len(fields), 1)
+        for gp in grandsire_dam_side:
+            if pd.notna(m1.get(gp)) and pd.notna(m2.get(gp)) and m1[gp] == m2[gp]:
+                pedigree += 12.5
+
+        # Level 3: Great-Grandparents (each match is worth 3.125%)
+        great_grands = [
+            "Great Grandsire (Sire's Sire)", "Great Granddam (Sire's Dam)",
+            "Great Grandsire (Dam's Sire)", "Great Granddam (Dam's Sire's Dam)",
+            "Great Grandsire (Dam's Dam's Sire)", "Great Granddam (Dam's Dam's Dam)"
+        ]
+        for gp in great_grands:
+            if pd.notna(m1.get(gp)) and pd.notna(m2.get(gp)) and m1[gp] == m2[gp]:
+                pedigree += 3.125
+
+        return round(pedigree, 2)
 
     def get_offspring(mare_names):
         return df[(df["Dam (Mother)"].isin(mare_names)) & (df["Total Earnings (USD)"] > 0)]
