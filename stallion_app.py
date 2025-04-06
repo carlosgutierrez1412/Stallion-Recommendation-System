@@ -19,35 +19,43 @@ def recommend_stallions(df, mare_name):
         mare = df[(df["Horse Name"].str.upper() == name.upper()) & (df["Horse Gender"] == "Mare")]
         return mare.iloc[0] if not mare.empty else None
 
-    def calculate_pedigree_match(m1, m2):
+    def pedigree_breakdown(m1, m2):
+        breakdown = []
         pedigree = 0.0
 
         # Level 1: Parents
         if m1["Sire (Father)"] == m2["Sire (Father)"]:
             pedigree += 50
+            breakdown.append(f"✅ Sire matched: {m1['Sire (Father)']} (+50%)")
         if m1["Dam (Mother)"] == m2["Dam (Mother)"]:
             pedigree += 50
+            breakdown.append(f"✅ Dam matched: {m1['Dam (Mother)']} (+50%)")
 
-        # Level 2: Grandparents (each match is worth 12.5%)
-        grandsire_dam_side = [
-            "Paternal Grandsire", "Paternal Granddam", 
-            "Maternal Grandsire", "Maternal Granddam"
+        # Level 2: Grandparents (12.5%)
+        grandparents = [
+            ("Paternal Grandsire", 12.5), ("Paternal Granddam", 12.5),
+            ("Maternal Grandsire", 12.5), ("Maternal Granddam", 12.5)
         ]
-        for gp in grandsire_dam_side:
-            if pd.notna(m1.get(gp)) and pd.notna(m2.get(gp)) and m1[gp] == m2[gp]:
-                pedigree += 12.5
+        for gp, score in grandparents:
+            if pd.notna(m1[gp]) and m1[gp] == m2[gp]:
+                pedigree += score
+                breakdown.append(f"✅ {gp} matched: {m1[gp]} (+{score}%)")
 
-        # Level 3: Great-Grandparents (each match is worth 3.125%)
-        great_grands = [
-            "Great Grandsire (Sire's Sire)", "Great Granddam (Sire's Dam)",
-            "Great Grandsire (Dam's Sire)", "Great Granddam (Dam's Sire's Dam)",
-            "Great Grandsire (Dam's Dam's Sire)", "Great Granddam (Dam's Dam's Dam)"
+        # Level 3: Great-Grandparents (3.125%)
+        greats = [
+            ("Great Grandsire (Sire's Sire)", 3.125),
+            ("Great Granddam (Sire's Dam)", 3.125),
+            ("Great Grandsire (Dam's Sire)", 3.125),
+            ("Great Granddam (Dam's Sire's Dam)", 3.125),
+            ("Great Grandsire (Dam's Dam's Sire)", 3.125),
+            ("Great Granddam (Dam's Dam's Dam)", 3.125)
         ]
-        for gp in great_grands:
-            if pd.notna(m1.get(gp)) and pd.notna(m2.get(gp)) and m1[gp] == m2[gp]:
-                pedigree += 3.125
+        for gp, score in greats:
+            if pd.notna(m1[gp]) and m1[gp] == m2[gp]:
+                pedigree += score
+                breakdown.append(f"✅ {gp} matched: {m1[gp]} (+{score}%)")
 
-        return round(pedigree, 2)
+        return round(pedigree, 2), breakdown
 
     def get_offspring(mare_names):
         return df[(df["Dam (Mother)"].isin(mare_names)) & (df["Total Earnings (USD)"] > 0)]
@@ -75,70 +83,74 @@ def recommend_stallions(df, mare_name):
 
     mare_info = get_mare_info(mare_name)
     if mare_info is None:
-        st.error(f"Mare '{mare_name}' not found or is not a mare.")
+        st.error(f"Mare '{mare_name}' not found.")
         return
 
-    tabs = [f"📋 {mare_name} Info"]
     all_relatives = get_all_relative_mares(mare_info)
     relative_earnings = []
 
     for rel_name, rel_type, level in all_relatives:
-        rel_info = df[df["Horse Name"] == rel_name].iloc[0]
+        rel_info = get_mare_info(rel_name)
         earnings = get_offspring([rel_name])["Total Earnings (USD)"].sum()
         if earnings > 0:
             if rel_type == "Self":
                 label = f"{rel_name} (Self)"
             else:
-                pedigree = calculate_pedigree_match(mare_info, rel_info)
+                pedigree = pedigree_breakdown(mare_info, rel_info)[0]
                 label = f"{rel_name} ({rel_type} | {pedigree}% Pedigree)"
             relative_earnings.append((rel_name, label, level, earnings))
 
     top_relatives = sorted(relative_earnings, key=lambda x: (-x[3], x[2]))[:5]
-    tabs += [f"🐴 {label}" for _, label, _, _ in top_relatives]
+    tabs = ["📋 Mare Info", "📊 Pedigree % Breakdown"] + [f"🐴 {label}" for _, label, _, _ in top_relatives]
+    st_tabs = st.tabs(tabs)
 
-    tabs = st.tabs(tabs)
-
-    # Mare Info Tab
-    with tabs[0]:
+    # Mare Info
+    with st_tabs[0]:
         st.subheader("Mare Information")
         st.write(f"• Name: {mare_info['Horse Name']}")
         st.write(f"• Registration #: {mare_info['Horse Registration Number']}")
         st.write(f"• Birth Date: {mare_info['Birth Date'].date()}")
         st.write(f"• Sire: {mare_info['Sire (Father)']}")
         st.write(f"• Dam: {mare_info['Dam (Mother)']}")
-        st.write(f"• Maternal Granddam: {mare_info['Maternal Granddam']}")
-        st.write(f"• Paternal Granddam: {mare_info['Paternal Granddam']}")
-        earnings = mare_info["Total Earnings (USD)"]
-        st.write(f"• Mare Earnings: ${earnings:,.2f}" if earnings > 0 else "• Mare Earnings: No recorded earnings")
-        st.markdown(f"• [Pedigree Link]({mare_info['Pedigree Link']})")
+        st.write(f"• Earnings: ${mare_info['Total Earnings (USD)']:,.2f}")
+        st.markdown(f"[Pedigree Link]({mare_info['Pedigree Link']})")
 
-    # Relative Mare Tabs
-    for idx, (rel_name, label, _, _) in enumerate(top_relatives, start=1):
-        with tabs[idx]:
+    # Pedigree Breakdown Tab
+    with st_tabs[1]:
+        st.subheader("📊 Pedigree % Breakdown")
+        for rel_name, label, _, _ in top_relatives:
+            if rel_name == mare_info["Horse Name"]:
+                st.markdown(f"### {rel_name} (Self) — 100% Pedigree (by definition)")
+                st.markdown("---")
+                continue
+
+            rel_info = get_mare_info(rel_name)
+            perc, breakdown = pedigree_breakdown(mare_info, rel_info)
+            st.markdown(f"### {rel_name} — {perc}% Match")
+            for line in breakdown:
+                st.write(line)
+            st.markdown("---")
+
+
+    # Recommendation Tabs
+    for i, (rel_name, label, _, _) in enumerate(top_relatives, start=2):
+        with st_tabs[i]:
             st.subheader(f"Recommendations for {label}")
             offspring = get_offspring([rel_name])
             top_stallions = (
                 offspring.sort_values(by="Total Earnings (USD)", ascending=False)
-                .drop_duplicates("Sire (Father)")
-                .head(5)
+                .drop_duplicates("Sire (Father)").head(5)
             )
-
-            stallion_tabs = st.tabs([f"🧬 {sire}" for sire in top_stallions["Sire (Father)"]])
-
+            stallion_tabs = st.tabs([f"🧬 {s}" for s in top_stallions["Sire (Father)"]])
             for j, sire in enumerate(top_stallions["Sire (Father)"]):
                 with stallion_tabs[j]:
-                    pair_offspring = offspring[offspring["Sire (Father)"] == sire]
-                    total_pair_earnings = pair_offspring["Total Earnings (USD)"].sum()
-
+                    pair = offspring[offspring["Sire (Father)"] == sire]
+                    total = pair["Total Earnings (USD)"].sum()
                     st.subheader(f"{rel_name} x {sire}")
-                    st.write(f"• Total Earnings from this pair: ${total_pair_earnings:,.2f}")
+                    st.write(f"• Total Earnings: ${total:,.2f}")
                     st.markdown("---")
-
-                    for i, row in pair_offspring.iterrows():
-                        child = row["Horse Name"]
-                        earning = row["Total Earnings (USD)"]
-                        st.markdown(f"• **{child}** earned ${earning:,.2f}")
-
+                    for _, row in pair.iterrows():
+                        st.markdown(f"• **{row['Horse Name']}** earned ${row['Total Earnings (USD)']:,.2f}")
 
 # Run
 if st.button("Recommend Stallions"):
