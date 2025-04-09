@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 
 # Load dataset
-df = pd.read_csv("https://drive.google.com/uc?id=1-3DesLMRhu50j2k-NhU8XaDPa-yZzjZd&export=download")
+df = pd.read_csv("https://drive.google.com/uc?id=14A-2Pz2ILnUB_hQF1PJ3EB073QcDhNsi&export=download")
+
 df["Birth Date"] = pd.to_datetime(df["Birth Date"], errors="coerce")
 
 st.title("🐎 Stallion Recommendation System")
@@ -25,7 +26,6 @@ def recommend_stallions(df, mare_name):
             "Great-Great Grandsire (Sire's Sire's Dam's Sire)": 0.0625, "Great-Great Granddam (Sire's Sire's Dam's Dam)": 0.0625,
             "Great-Great Grandsire (Sire's Dam's Sire)": 0.0625, "Great-Great Granddam (Sire's Dam's Dam)": 0.0625,
             "Great-Great Grandsire (Sire's Dam's Dam's Sire)": 0.0625, "Great-Great Granddam (Sire's Dam's Dam's Dam)": 0.0625,
-
             "Dam (Mother)": 0.50,
             "Maternal Grandsire": 0.25, "Maternal Granddam": 0.25,
             "Great Grandsire (Dam's Sire)": 0.125, "Great Granddam (Dam's Sire's Dam)": 0.125,
@@ -76,7 +76,6 @@ def recommend_stallions(df, mare_name):
         pedigree_map = build_pedigree_tree()
         m2_values = set(m2.dropna().values)
 
-
         keys_by_branch = {
             "Sire (Father)": [
                 "Paternal Grandsire", "Paternal Granddam",
@@ -113,7 +112,7 @@ def recommend_stallions(df, mare_name):
              (df["Dam (Mother)"] == m["Dam (Mother)"])),
             ("Half Sister", lambda m: (df["Horse Gender"] == "Mare") &
              (((df["Sire (Father)"] == m["Sire (Father)"]) & (df["Dam (Mother)"] != m["Dam (Mother)"])) |
-              ((df["Dam (Mother)"] == m["Dam (Mother)"]) & (df["Sire (Father)"] != m["Sire (Father)"])))),
+              ((df["Dam (Mother)"] == m["Dam (Mother)"]) & (df["Sire (Father)"] != m["Sire (Father)"]))))
         ]
         for level_idx, (label, func) in enumerate(levels, 1):
             matches = df[func(main_mare_info) & (~df["Horse Name"].isin(seen))]
@@ -148,7 +147,11 @@ def recommend_stallions(df, mare_name):
         st.subheader("Mare Information")
         st.write(f"• Name: {mare_info['Horse Name']}")
         st.write(f"• Registration #: {mare_info['Horse Registration Number']}")
-        st.write(f"• Birth Date: {mare_info['Birth Date'].date()}")
+        birth_date = mare_info["Birth Date"]
+        if pd.notna(birth_date):
+            st.write(f"• Birth Date: {birth_date.date()}")
+        else:
+            st.write("• Birth Date: Not Available")
         st.write(f"• Sire: {mare_info['Sire (Father)']}")
         st.write(f"• Dam: {mare_info['Dam (Mother)']}")
         st.write(f"• Earnings: ${mare_info['Total Earnings (USD)']:,.2f}")
