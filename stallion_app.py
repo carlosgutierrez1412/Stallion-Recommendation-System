@@ -1,5 +1,12 @@
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
+
+# ✅ Umami analytics tracking
+umami_script = """
+<script defer src="https://cloud.umami.is/script.js" data-website-id="b5bf2f70-e4d0-4308-8804-c36a67d32dc0"></script>
+"""
+components.html(umami_script, height=0, width=0)
 
 # Load dataset
 df = pd.read_csv("https://drive.google.com/uc?id=14A-2Pz2ILnUB_hQF1PJ3EB073QcDhNsi&export=download")
