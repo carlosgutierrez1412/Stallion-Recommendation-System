@@ -10,7 +10,6 @@ components.html(umami_script, height=0, width=0)
 
 # Load dataset
 df = pd.read_csv("https://drive.google.com/uc?id=14A-2Pz2ILnUB_hQF1PJ3EB073QcDhNsi&export=download")
-
 df["Birth Date"] = pd.to_datetime(df["Birth Date"], errors="coerce")
 
 st.title("🐎 Stallion Recommendation System")
@@ -142,8 +141,7 @@ def recommend_stallions(df, mare_name):
             if rel_type == "Self":
                 label = f"{rel_name} (Self)"
             else:
-                pedigree = calculate_new_pedigree(mare_info, rel_info)[0]
-                label = f"{rel_name} ({rel_type} | {pedigree:.1f}% Pedigree)"
+                label = f"{rel_name} ({rel_type})"
             relative_earnings.append((rel_name, label, level, earnings))
 
     top_relatives = sorted(relative_earnings, key=lambda x: (-x[3], x[2]))[:5]
