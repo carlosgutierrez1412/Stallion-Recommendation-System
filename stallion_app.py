@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
+import time
 
 # ✅ Umami analytics tracking
 umami_script = """
@@ -8,9 +9,14 @@ umami_script = """
 """
 components.html(umami_script, height=0, width=0)
 
-# Load dataset
-df = pd.read_csv("https://drive.google.com/uc?id=14A-2Pz2ILnUB_hQF1PJ3EB073QcDhNsi&export=download")
-df["Birth Date"] = pd.to_datetime(df["Birth Date"], errors="coerce")
+# ✅ Cache dataset loading
+@st.cache_data
+def load_data():
+    df = pd.read_csv("https://drive.google.com/uc?id=14A-2Pz2ILnUB_hQF1PJ3EB073QcDhNsi&export=download")
+    df["Birth Date"] = pd.to_datetime(df["Birth Date"], errors="coerce")
+    return df
+
+df = load_data()
 
 st.title("🐎 Stallion Recommendation System")
 
@@ -177,7 +183,8 @@ def recommend_stallions(df, mare_name):
 
 # Run
 if st.button("Recommend Stallions"):
+    start_time = time.time()
     with st.spinner("⏳ Generating stallion recommendations..."):
         recommend_stallions(df, selected_mare)
-    
-
+    elapsed = time.time() - start_time
+    st.success(f"✅ Recommendations ready in {elapsed:.2f} seconds!")
