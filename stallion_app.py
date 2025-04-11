@@ -11,8 +11,7 @@ components.html(umami_script, height=0, width=0)
 
 # ✅ Load dataset
 df = pd.read_csv("https://drive.google.com/uc?id=14A-2Pz2ILnUB_hQF1PJ3EB073QcDhNsi&export=download")
-df["Birth Date"] = pd.to_datetime(df["Birth Date"], format="%Y-%m-%d", errors="coerce")
-
+df["Birth Date"] = pd.to_datetime(df["Birth Date"], errors="coerce")
 
 st.title("🐎 Stallion Recommendation System")
 
@@ -70,8 +69,8 @@ def recommend_stallions(df, mare_name):
             total_score += avg_score
             combined_label = set(labels1[ancestor]) | set(labels2[ancestor])
             breakdown.append(f"✅ {ancestor} (matched at: {', '.join(combined_label)}) — averaged contribution = {avg_score:.4f}")
- 
-        pedigree_percent = round((total_score / 4.0) * 100, 2)
+
+        pedigree_percent = round((total_score * 100), 2)
         return pedigree_percent, breakdown
 
     def classify_relationship(mare_row, relative_row):
