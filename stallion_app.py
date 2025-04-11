@@ -70,7 +70,7 @@ def recommend_stallions(df, mare_name):
             combined_label = set(labels1[ancestor]) | set(labels2[ancestor])
             breakdown.append(f"✅ {ancestor} (matched at: {', '.join(combined_label)}) — averaged contribution = {avg_score:.4f}")
 
-        pedigree_percent = round(((total_score / 400) * 100), 2)
+        pedigree_percent = round(((total_score / 4) * 100), 2)
         return pedigree_percent, breakdown
 
     def classify_relationship(mare_row, relative_row):
