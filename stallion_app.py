@@ -11,6 +11,7 @@ components.html(umami_script, height=0, width=0)
 
 # ✅ Load dataset
 df = pd.read_csv("https://drive.google.com/uc?id=14A-2Pz2ILnUB_hQF1PJ3EB073QcDhNsi&export=download")
+df["Birth Date"] = pd.to_datetime(df["Birth Date"], format="%Y-%m-%d", errors="coerce")
 
 
 st.title("🐎 Stallion Recommendation System")
